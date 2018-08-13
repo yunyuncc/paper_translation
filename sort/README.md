@@ -1,4 +1,5 @@
 # sort翻译
+原文链接:https://arxiv.org/pdf/1602.00763.pdf
 
 这篇论文介绍了一个用tracking by detection模式解决多物体tracking(MOT)的良好的实现方法，在该模式中每一帧中detect的物体都用一个bounding box来表示。和很多batch based tracking（一个视频中的所有帧同时给出，可以进行批处理）方法[1][2][3]比较，本文介绍的方法主要针对在线tracking（比如tracking摄像头的数据，直播等），只有前面帧和当前帧被提供给tracker。
 
