@@ -1,1 +1,1 @@
-"# paper_translation" 
+sort和deep_sort是用来处理MOT(Multiple Object Tracking 多目标跟踪)问题的论文，deep_sort是基于sort做了一些改进
