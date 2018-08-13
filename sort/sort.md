@@ -21,3 +21,25 @@
 这里我们比较了FrRCNN支持的两种网络结构，分别是FrRCNN(ZF)和更深的FrRCNN(VGG16)。在这项工作中我们使用了PASCAL VOC挑战赛的FrRCNN的默认的训练好的参数。因为我们只关注行人，我们忽略了其他的物体种类，并且将概率在50%以上的detection结果传递给tracking框架。
 
 ![image](img/img1.png)
+
+经过我们的实验，发现了detection的质量对tracking的性能有很大的影响，这个结果适用于online tracker MDP[12]和我们提出的tracker。表1显示了用最好的detector FrRCNN(VGG16)的时候tracker的表现是最好的。
+
+3.2. 估计模型<br>
+我们来解释一下对象模型，即我们用来将目标的id传播到下一帧的表示法和运动模型。
+我们将每个物体在帧间的移动近似的看作是匀速直线运动，且和别的物体以及相机的运动无关。每个目标的状态用下面的方法来建模:<br>
+![image](img/img2.png)
+
+用u和v代表物体的中心点的水平和竖直的像素，s和r分别表示目标的bounding box的面积和宽高比，注意宽高比应该是一个常数。当一个detection关联到一个对象的时候，detection的bounding box用来更新对象的状态，速度分量用卡尔曼滤波器来计算[14]。如果一个对象没有相应的detection做关联，那么该对象的状态就简单的根据线性速度模型来做预测。
+
+3.3. 数据关联<br>
+在将detections赋值给现有的对象的时候，每个目标当前帧的bounding box的位置都会被预测。本次赋值的损失的矩阵根据每个detection的bounding box和预测的bounding box的IOU距离来计算。赋值时用匈牙利算法来求出最优解。另外，当detection 的bounding box 与预测的bounding box的IOU小于IOU_min的时候强制使赋值失败。
+
+我们发现了bounding boxes之间的IOU distance的计算隐式的处理了由传递目标引起的短期遮挡。特别的，当一个目标被一个遮挡物挡起来的时候，只有遮挡物被是被detect的，因为IOU更偏向于面积相似的bounding box，所以遮挡物的bounding box不会被赋值到目标上去。
+
+3.4. 创造和删除track id<br>
+当物体出现或离开镜头的时候，一个唯一标识的id应该被相应的创造和删除。当有一个detection的bounding box和现有的所有的目标的iou都小于iou_min的时候，我们就认为出现了一个未被tracking的对象，应该create一个tracker(给一个唯一的id)。被创建出来的tracker用bounding box以及速度0来初始化。因为在这点上速度是没有经过观测的，所以它的协方差用较大的指来初始化，表示不确定性。此外新的tracker要经历一个试用期，在此期间目标需要与detections关联，积累一定的证据，来防止tracking的误报。
+
+当一个目标在T_lost帧内斗没有被detected到的话，它的track就终止。这样可以保证tracker的数量不会无限制的增长，也防止了预测在一直没有detection矫正的情况下的定位误差增长。在我们的实验当中T_lost都被设置成1，原因有两个，一是匀速直线运动预测模型是一个很粗糙的预测模型，二是我们主要关注的是帧与帧之间tracking，物体re-id不在本文的讨论范围内。此外，尽早地删除丢失的目标有助于提高效率，当一个目标重新出现的时候，我们应该给它一个新的id。
+
+4.实验<br>
+我们通过MOT benchmark 的数据库[6]来评估trackeing的性能，其中包括了静止和移动的camera的帧序列。为了调整卡尔曼滤波器的初始协方差，IOU_min，T_lost等参数，我们将数据集分为训练集和交叉验证集[12]。Detection 使用FrRCNN(VGG16)[22]。源码和示例detections在https://github.com/abewley/sort。
