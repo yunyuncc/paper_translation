@@ -20,4 +20,4 @@
 
 这里我们比较了FrRCNN支持的两种网络结构，分别是FrRCNN(ZF)和更深的FrRCNN(VGG16)。在这项工作中我们使用了PASCAL VOC挑战赛的FrRCNN的默认的训练好的参数。因为我们只关注行人，我们忽略了其他的物体种类，并且将概率在50%以上的detection结果传递给tracking框架。
 
-![image][img/img1.png]
+![image][https://github.com/yunyuncc/paper_translation/blob/master/sort/img/img1.png]
