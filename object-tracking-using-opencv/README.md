@@ -1,0 +1,28 @@
+# object tracking using opencv
+
+## 什么是物体追踪(object tracking)
+
+原文链接：https://www.learnopencv.com/object-tracking-using-opencv-cpp-python/
+
+简单来讲，在一个视频中的连续几帧内定为一个物体的位置叫做tracking。
+
+## 一些tracking的相似概念
+
+3.卡尔曼滤波器：一个非常有名的信号处理算法，用来根据之前的运动信息来预测一个移动物体的位置。这个算法有用在阿波罗11号登月上。
+4.
+5.单一物体tracking：这类的tracker，需要在第一帧中庸矩形框来标记我们想要tracking的物体。然后该算法就会在后续的帧序列当中追踪该物体。在实际的应用当中，这些tracker通常会配合detector来使用。
+6.多物体轨迹查找算法(MOT multiple object track)：当我们有一个快速的detector的情况下，在每帧中去detect多个物体，然后去运行轨迹查找算法去给视频帧当中每个框一个id,在下一帧中找出相应的id所对应的框式哪一个。
+
+## tracking vs detection
+
+如果你曾使用过opencv的人脸检测，你就会知道opencv是可以实时的检测出视频中每一帧中的人脸的。所以我们为什么还需要tracking呢？让我们来解释为什么我们想要tracking视频中的物体，而不仅仅是重复的做detection。
+
+1.tracking会比detection要快，原因很简单，当你想要tracking一个在前一帧中已经被detection出来的物体时，你已经知道了该物体的外观信息，也知道该物体的位置以及运动的方向，速度等信息。所以在下一帧当中你可以使用这些信息来预测这个物体的位置，然后再这个预测的位置附近对这个物体做精确的搜索。一个好的tracking算法会用到它所知道的该物体的所有的信息，但是detection只能从零开始。因此，在设计一个高效的系统时，通常会每n帧做一次detection，在中间的n-1帧当中做tracking。为什么我们不把问题简化，只在第一帧中做detection，在后续的帧中做tracking呢？确实tracking可以利用它已知的信息，但是当物体被障碍物遮挡或者物体移动的太快的时候，tracking就会断掉。tracking算法的另一个常见的问题是会累计误差，在长时间tracking后，框可能会慢慢地偏离要tracking的物体。所以需要一直运行detection算法来解决这些问题。detection算法是根据大量的物体实例训练出来的模型来实现的，因此它会更清楚物体的一般性特点。另一方面，tracking算法更清楚它所tracking的个例的特点。
+2.tracking可以在detection失败的时候进行补救。如果你在视频中运行一个人脸检测算法，当人脸被遮挡的时候detecter就很可能检测不出来这张人脸。一个好的tracking算法在一定程度上可以处理这种短暂的遮挡。
+3.tracking可以保存id：detection的输出是一个矩形框的数组。然而，并没有给物体生成id。例如，在下面的视频中detector可以输出红点的所在位置，在下一帧中它又输出另一组矩形框的数组。在第一帧中某个点的位置可能是第十个矩形框，在第二帧中，该点的位置可能是第17个矩形框。使用detection时我们不知道哪一个矩形框对应的是哪个一个物体。另一方面tracking可以给每个物体一个id。就可以清楚轨迹了。
+
+## opencv3 tracking API
+
+opencv3.4.1引入7个单物体追踪算法的实现,分别是BOOSTING, MIL, KCF, TLD, MEDIANFLOW, GOTURN, MOSSE 以及 CSRT。
+
+在我们简要描述这些算法之前，我们先来看看使用方法。在下面的代码里卖弄，我们首先选择tracker的类型。然后我们打开一个视频并且抓取一帧，我们定义了一个第一帧中一个物体的矩形框，然后初始化tracker。最后我们循环地视频中读取视频帧，用来更新tracker，获取在该帧中新的矩形框的位置。
